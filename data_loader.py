@@ -1,6 +1,7 @@
-
 import argparse
 import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
 
 SPS = 8
 N = 128
@@ -30,7 +31,7 @@ def make_example(rng, snr_db=None, h=0.5, max_cfo=0.0):
     x = x[start:start + N]
 
     # Add random carrier phase and optional frequency offset
-    n = np.arange(N) 
+    n = np.arange(N)
     cfo = rng.uniform(-max_cfo, max_cfo) if max_cfo > 0 else 0.0
 
     x = x * np.exp(
@@ -39,15 +40,20 @@ def make_example(rng, snr_db=None, h=0.5, max_cfo=0.0):
 
     # Add white Gaussian noise
     if snr_db is not None:
-        noise_power = 10 ** (-snr_db / 10)
-        noise = (
-            rng.standard_normal(N)
-            + 1j * rng.standard_normal(N)
-        ) * np.sqrt(noise_power / 2)
-
-        x = x + noise
+        x = x + make_noise(rng, snr_db)
 
     return x
+
+
+def make_noise(rng, snr_db):
+    # Complex white Gaussian noise at the power that corresponds to this SNR
+    # (signal power is 1, so noise power = 10^(-SNR/10)).
+    # Used alone, this is a "no signal present" example (label 0).
+    noise_power = 10 ** (-snr_db / 10)
+    return (
+        rng.standard_normal(N)
+        + 1j * rng.standard_normal(N)
+    ) * np.sqrt(noise_power / 2)
 
 
 def to_iq(x):
@@ -55,18 +61,71 @@ def to_iq(x):
 
 
 def build(n_per_snr, seed, h, max_cfo):
+    """
+    For every SNR, generate n_per_snr signal+noise examples (label 1)
+    and n_per_snr noise-only examples (label 0) at the same noise level.
 
+    Returns:
+        X   : float32 [num_examples, 2, 128]  (I and Q channels)
+        y   : int64   [num_examples]          (1 = signal present, 0 = noise only)
+        snr : int64   [num_examples]          (SNR the example was generated at)
+    """
     rng = np.random.default_rng(seed)
 
-    X, snr = [], []
+    X, y, snr = [], [], []
 
     for s in SNRS:
         for _ in range(n_per_snr):
-            x = make_example(rng, s, h, max_cfo)
-            X.append(to_iq(x))
+            # Signal present
+            X.append(to_iq(make_example(rng, s, h, max_cfo)))
+            y.append(1)
             snr.append(s)
 
-    return np.stack(X), np.array(snr)
+            # Noise only
+            X.append(to_iq(make_noise(rng, s)))
+            y.append(0)
+            snr.append(s)
+
+    return np.stack(X), np.array(y, dtype=np.int64), np.array(snr, dtype=np.int64)
+
+
+class SpectrumDataset(Dataset):
+    """
+    Builds the dataset in memory (no .npz file needed), the same way the
+    reference repo's Dataset classes generate their data in __init__.
+    """
+
+    def __init__(self, n_per_snr=500, seed=0, h=0.5, max_cfo=0.0):
+        X, y, snr = build(n_per_snr, seed, h, max_cfo)
+        self.X = torch.from_numpy(X)      # [num_examples, 2, 128]
+        self.y = torch.from_numpy(y)      # [num_examples]
+        self.snr = torch.from_numpy(snr)  # [num_examples]
+
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, idx):
+        # SNR is returned too so test.py can compute accuracy per SNR
+        return self.X[idx], self.y[idx], self.snr[idx]
+
+
+def get_loader(batch_size=64, mode='train', num_workers=0,
+               n_per_snr=500, h=0.5, max_cfo=0.0, seed=None):
+    """
+    mode='train' -> seed 0 by default, shuffled, drops the last partial batch
+                    (BatchNorm in the model fails on a batch of size 1)
+    mode='test'  -> seed 1 by default, so test data never overlaps training data
+    """
+    if seed is None:
+        seed = 0 if mode == 'train' else 1
+
+    dataset = SpectrumDataset(n_per_snr=n_per_snr, seed=seed, h=h, max_cfo=max_cfo)
+
+    return DataLoader(dataset,
+                      batch_size=batch_size,
+                      shuffle=(mode == 'train'),
+                      drop_last=(mode == 'train'),
+                      num_workers=num_workers)
 
 
 def plot_preview(path, h, seed=3):
@@ -123,6 +182,8 @@ def plot_preview(path, h, seed=3):
 
 
 if __name__ == "__main__":
+    # Optional: still lets you save the dataset to .npz and make the preview plot.
+    # Training does NOT need this; get_loader() builds the data in memory.
 
     ap = argparse.ArgumentParser()
 
@@ -135,11 +196,12 @@ if __name__ == "__main__":
 
     a = ap.parse_args()
 
-    X, snr = build(a.n_per_snr, a.seed, a.h, a.cfo)
+    X, y, snr = build(a.n_per_snr, a.seed, a.h, a.cfo)
 
-    np.savez_compressed(a.out, X=X, snr=snr)
+    np.savez_compressed(a.out, X=X, y=y, snr=snr)
 
     print("X:", X.shape, X.dtype)
+    print("y: signal =", int(y.sum()), " noise only =", int((y == 0).sum()))
     print("SNRs:", sorted(set(snr.tolist())))
     print("Saved to", a.out)
 

@@ -1,0 +1,22 @@
+{
+    "base_path": "./experiments/",
+    "batch_size": 64,
+    "cfo": 0.0,
+    "data_seed": 0,
+    "h": 0.5,
+    "log_step": 50,
+    "logs_path": "./experiments/first_try_0510_233249/logs",
+    "lr": 0.001,
+    "model_path": "./experiments/first_try_0510_233249/models",
+    "n_per_snr": 500,
+    "num_classes": 2,
+    "num_epochs": 30,
+    "num_workers": 0,
+    "results_path": "./experiments/first_try_0510_233249/results",
+    "run_name": "first_try",
+    "seed": 0,
+    "test_n_per_snr": 500,
+    "time_now": "0510_233249",
+    "val_n_per_snr": 100,
+    "weight_decay": 0.0
+}

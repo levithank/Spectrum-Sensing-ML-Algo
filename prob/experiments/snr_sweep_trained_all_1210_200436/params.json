@@ -1,0 +1,41 @@
+{
+    "base_path": "./experiments/",
+    "cfo": 0.0,
+    "data_seed": 0,
+    "mods": [
+        "4psk",
+        "4ask"
+    ],
+    "n": 128,
+    "n_per_class": 1000,
+    "naive": 0,
+    "random_phase": 1,
+    "rule_feature": "circ2",
+    "run_name": "snr_sweep_trained_all",
+    "sps": 1,
+    "test_n_per_class": 1000,
+    "test_snrs": [
+        -10,
+        -8,
+        -6,
+        -4,
+        -2,
+        0,
+        2,
+        4,
+        6,
+        10
+    ],
+    "train_snrs": [
+        -10,
+        -8,
+        -6,
+        -4,
+        -2,
+        0,
+        2,
+        4,
+        6,
+        10
+    ]
+}

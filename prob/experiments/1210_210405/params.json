@@ -1,0 +1,23 @@
+{
+    "base_path": "./experiments/",
+    "cfo": 0.0,
+    "data_seed": 0,
+    "mods": [
+        "4psk",
+        "4ask"
+    ],
+    "n": 128,
+    "n_per_class": 2000,
+    "naive": 0,
+    "random_phase": 1,
+    "rule_feature": "circ2",
+    "run_name": "",
+    "sps": 1,
+    "test_n_per_class": 2000,
+    "test_snrs": [
+        0
+    ],
+    "train_snrs": [
+        0
+    ]
+}

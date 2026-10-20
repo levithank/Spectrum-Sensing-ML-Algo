@@ -1,0 +1,60 @@
+{
+    "rule": "if circ2 > 0.2893 -> 4ASK else 4PSK",
+    "rule_threshold": 0.2892753380167447,
+    "bayes_class_means": {
+        "4psk": {
+            "circ2": 0.10249697706280904,
+            "circ4": 0.353696662118287,
+            "amp_cv": 0.4656520911951886,
+            "kurt": 1.7494317549293052
+        },
+        "4ask": {
+            "circ2": 0.507011687005968,
+            "circ4": 0.4987059479675866,
+            "amp_cv": 0.5074309012248144,
+            "kurt": 1.8976876882852258
+        }
+    },
+    "results": {
+        "rule (circ2)": {
+            "overall_acc": 0.999,
+            "per_snr_acc": {
+                "0": 0.999
+            },
+            "confusion": [
+                [
+                    1997,
+                    3
+                ],
+                [
+                    1,
+                    1999
+                ]
+            ],
+            "classes": [
+                "4psk",
+                "4ask"
+            ]
+        },
+        "gaussian bayes": {
+            "overall_acc": 0.999,
+            "per_snr_acc": {
+                "0": 0.999
+            },
+            "confusion": [
+                [
+                    1998,
+                    2
+                ],
+                [
+                    2,
+                    1998
+                ]
+            ],
+            "classes": [
+                "4psk",
+                "4ask"
+            ]
+        }
+    }
+}
